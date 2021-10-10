@@ -1,4 +1,4 @@
-# qcemu
+# qcemu (work-in-progress)
 ## What is this?
 This is a Quantum Computer simulator written in Python 3 for the course `FDD3280 - Quantum Computing to Computer Scientists` at KTH Royal Institute of Technology. Part of the code used was shown in class.
 
