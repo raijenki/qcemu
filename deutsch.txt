@@ -1,0 +1,11 @@
+# This file implements the Deutsch algorithm
+# in two qubits
+
+INIT 2
+WRITE 1
+H 0
+H 1
+CX 1 0
+H 0
+H 1
+BLOCH

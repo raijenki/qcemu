@@ -53,27 +53,27 @@ class Qubit():
         plt.xticks(self.possibleoutcome, rotation='65')
         plt.show()
 
-    def write(self, initstate):
-        self.initstate = initstate
-        print("Written state = ", self.initstate)
+    def init(self, state):
+        if state == 0:
+            self.qubit[0] = 1
+            self.qubit[1] = 0
+        if state == 1:
+            self.qubit[0] = 0
+            self.qubit[1] = 1
 
-        if(self.initstate > 2):
-            print("Initial state can't be represented in the system")
-            sys.exit(1)
-        self.qubit[self.initstate] = 1
-
-    def writebin(self, binarystring):
-        self.initstate = int(binarystring, 2)
-        if (self.initstate > 2):
-            print("Initial state can't be represented in the system")
-            sys.exit(1)
-        self.qubit[self.initstate] = 1.0 + 0.j
     
-    def rotx(self):
-        self.notmatrix = np.array([(0, 1), (1,0)], dtype=np.float)
-        self.allcircuit = self.notmatrix
+    def identity(self):
+        self.imatrix = np.array([(1, 0), (0,1)], dtype=np.float)
+        self.allcircuit = self.imatrix
         for i in range(self.noqubits - 1):
-            self.allcircuit = np.kron(self.notmatrix, self.allcircuit)
+            self.allcircuit = np.kron(self.imatrix, self.allcircuit)
+        self.qubit = self.allcircuit.dot(self.qubit)
+
+    def rotx(self):
+        self.rotxmatrix = np.array([(0,1), (1, 0)], dtype=np.complex)
+        self.allcircuit = self.rotxmatrix
+        for i in range(self.noqubits - 1):
+            self.allcircuit = np.kron(self.rotxmatrix, self.allcircuit)
         self.qubit = self.allcircuit.dot(self.qubit)
 
     def roty(self):
@@ -98,8 +98,25 @@ class Qubit():
             self.allcircuit = np.kron(self.pmatrix, self.allcircuit)
         self.qubit = self.allcircuit.dot(self.qubit)
 
+    def t(self):
+        self.tmatrix = np.array([(1, 0), (0, 0 + math.e**(1.j*(math.pi)/4))], dtype=np.complex)
+        self.allcircuit = self.tmatrix
+        for i in range(self.noqubits - 1):
+            self.allcircuit = np.kron(self.tmatrix, self.allcircuit)
+        self.qubit = self.allcircuit.dot(self.qubit)
+
+    def tdg(self):
+        self.tdgmatrix = np.array([(1, 0), (0, 0 + math.e**(-1.j*(math.pi)/4))], dtype=np.complex)
+        self.allcircuit = self.tdgmatrix
+        for i in range(self.noqubits - 1):
+            self.allcircuit = np.kron(self.tdgmatrix, self.allcircuit)
+        self.qubit = self.allcircuit.dot(self.qubit)
+
     def writeraw(self, pos, val):
         self.qubit[pos] = val 
+
+    def readraw(self, pos):
+        return self.qubit[pos]
 
     # Sanity check
     def test(self):
