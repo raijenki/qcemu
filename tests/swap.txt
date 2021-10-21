@@ -1,0 +1,7 @@
+# This implements the SWAP operation for 2-qubits through usage of CNOTs. Initial value starts as 10 and ends as 01.
+INIT 2
+WRITE 10
+CX 1 0
+CX 0 1
+CX 1 0
+BLOCH

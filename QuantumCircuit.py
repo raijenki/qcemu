@@ -7,14 +7,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import sys
-from constants import STATES
+import time
 
 class QuantumCircuit():
     def __init__(self, noqubits=1):
+
+        # This will ensure that our system will function properly, as CNOT is designed for only
+        # 2 or 3 qubits
+        if(noqubits > 3):
+            print("This number of qubits is not allowed!")
+            print("Leaving the program...")
+            sys.exit(1)
+
+        # Don't even need to put an else
         self.noqubits = noqubits
         self.nstates = 2**noqubits ## Number of possible states is equal to 2^(number of qubits)
+        self.figimage = 1
 
-        # Print some useful message
+        # Print some useful messages
         print("Initiation of allocation")
         print("Number of qubits = ", self.noqubits)
         print("Number of possible states = ", self.nstates)
@@ -24,11 +34,6 @@ class QuantumCircuit():
         self.ampliqubit = np.zeros((self.nstates), dtype=np.float)
         self.phase = np.zeros((self.nstates), dtype=np.float)
 
-
-        # Since most of code is redundant, define all matrixes here
-        self.identitymatrix = np.array([(1, 0), (0, 1)], dtype=np.float)
-        self.X = np.array([[0, 1], [1, 0]])
-
 ##  __  __ _    _ _   _______ _____       _____       _______ ______ 
 ## |  \/  | |  | | | |__   __|_   _|     / ____|   /\|__   __|  ____|
 ## | \  / | |  | | |    | |    | |______| |  __   /  \  | |  | |__   
@@ -36,90 +41,112 @@ class QuantumCircuit():
 ## | |  | | |__| | |____| |   _| |_     | |__| |/ ____ \| |  | |____ 
 ## |_|  |_|\____/|______|_|  |_____|     \_____/_/    \_\_|  |______|
 ##
-##                   (CCNOT, TOFFOLI, SWAP, ARITHMETICS)
+##                   (CCNOT, TOFFOLI, ARITHMETICS)
 
 
-    # This code only works on 2-qubits
-    def swap(self):
-        self.swapMatrix = np.array([(1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1)])
-        self.qubit = self.swapMatrix.dot(self.qubit)
-
-    # This code (for generating CNOT matrixes) was based on 
-    # https://github.com/adamisntdead/QuSimPy/blob/master/QuSim.py
-    # My modification was to change the qubit count and transform the gateMatrix into array
+# Took this idea from https://github.com/corbett/QuantumComputing
+# Computing matrices for cnot gates with >2 qubits is something non-trivial, 
+# so the idea was simply to hardcode into the project.
+# It was adapted to use in this code (i.e., transform a matrix into np.array and IFs).
+# Comments are also mine.
+# It also appears that target and control are inverted there, but I won't be changing the variable names. lol
     def cx(self, control=0, target=1):
-        self.identity = np.eye(2)
-        self.notmatrix = np.matrix([[0, 1], [1, 0]], dtype = np.float)
-        C = np.mat([
-                [float('nan'), 0],
-                [0, 1]])
-        gateOrder = []
-        for i in range(0, self.noqubits):
-            if (i == control):
-                gateOrder.append(C)
-            elif (i == target):
-                gateOrder.append(self.notmatrix)
-            else:
-                gateOrder.append(self.identity)
-        
-        # Generate the gate and then replace the NaNs to Id gates
-        newGate = reduce(np.kron, gateOrder)
-        n = newGate.shape[0]
-        gateMatrix = np.mat([[newGate[i, j] if not np.isnan(newGate[i, j]) else 1 if i == j else 0 for j in range(n)] for i in range(n)])
-        gateMatrix = gateMatrix.tolist()
-        self.qubit = np.dot(self.qubit, gateMatrix)
+        H = 1./math.sqrt(2)*np.matrix('1 1; 1 -1') # Hadamard
+        CNOT2_01=np.matrix('1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0') 
+        CNOT2_10 = np.kron(H,H)*CNOT2_01*np.kron(H,H)  # This uses the hadamard trick to invert function
+        eye=np.eye(2,2)
 
-    # def cz(self, control=0, target=1):
-    #     self.identity = np.eye(2)
-    #     self.czmatrix = np.matrix([[1, 0], [0, -1]], dtype = np.float)
-    #     C = np.mat([
-    #             [float('nan'), 0],
-    #             [0, 1]])
-    #     gateOrder = []
-    #     for i in range(0, self.noqubits):
-    #         if (i == control):
-    #             gateOrder.append(C)
-    #         elif (i == target):
-    #             gateOrder.append(self.czmatrix)
-    #         else:
-    #             gateOrder.append(self.identity)
-        
-    #     # Generate the gate and then replace the NaNs to Id gates
-    #     newGate = reduce(np.kron, gateOrder)
-    #     n = newGate.shape[0]
-    #     gateMatrix = np.mat([[newGate[i, j] if not np.isnan(newGate[i, j]) else 1 if i == j else 0 for j in range(n)] for i in range(n)])
-    #     print(gateMatrix)
-    #     gateMatrix = gateMatrix.tolist()
-    #     self.qubit = np.dot(self.qubit, gateMatrix)
+        # For two entangled qubits
+        if(self.noqubits==2):
+            if(control==0 and target==1):
+                self.cnot=CNOT2_01
+                #print("CNOT02_01")
+            if(control==1 and target==0):
+                self.cnot=CNOT2_10
+               # print("CNOT02_10")
+        # For three entangled qubits
+        if(self.noqubits == 3):
+            if(control==0 and target==1):
+                self.cnot=np.kron(CNOT2_01,eye)
+            if(control==1 and target==0):
+                self.cnot=np.kron(CNOT2_10,eye)
+            if(control==1 and target==2):
+                self.cnot=np.kron(eye,CNOT2_01)
+            if(control==2 and target==1):
+                self.cnot=np.kron(eye,CNOT2_10)
+            if(control==0 and target==2):
+                self.cnot=np.matrix('1 0 0 0 0 0 0 0; 0 1 0 0 0 0 0 0; 0 0 1 0 0 0 0 0; 0 0 0 1 0 0 0 0; 0 0 0 0 0 1 0 0; 0 0 0 0 1 0 0 0; 0 0 0 0 0 0 0 1; 0 0 0 0 0 0 1 0')
+            if(control==2 and target==0):
+                self.cnot=np.matrix('1 0 0 0 0 0 0 0; 0 0 0 0 0 1 0 0; 0 0 1 0 0 0 0 0; 0 0 0 0 0 0 0 1; 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 1 0; 0 0 0 1 0 0 0 0')
 
-    def rk(self, index):
-        self.rkMatrix = np.array([(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, math.e**((2*math.pi*1.j)/(2**index)))])       
-        self.qubit = self.ccnotMatrix.dot(self.qubit)
+        self.cnot = np.array(self.cnot.tolist())
+        self.qubit = self.cnot.dot(self.qubit)
+
+    # This allows the implementation of R-k gate
+    # so we can attempt the QFT later
+    def rk(self, r_index):
+        r_index = math.e**((2*math.pi*1.j)/(2*math.r_index))
+        rk=np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 1 0')
+
 
     # CCNOT gate (TOFFOLI)
-    def ccnot(self):
-        self.ccnotMatrix = np.array([(1, 0, 0, 0, 0, 0, 0, 0),
-                                     (0, 1, 0, 0, 0, 0, 0, 0),
-                                     (0, 0, 1, 0, 0, 0, 0, 0),
-                                     (0, 0, 0, 1, 0, 0, 0, 0),
-                                     (0, 0, 0, 0, 1, 0, 0, 0),
-                                     (0, 0, 0, 0, 0, 1, 0, 0),
-                                     (0, 0, 0, 0, 0, 0, 0, 1),
-                                     (0, 0, 0, 0, 0, 0, 1, 0)])
-        self.qubit = self.ccnotMatrix.dot(self.qubit)
+    # By definition, target is qubit 2, controls are 0 and 1
+    def ccx(self, control1=0, control2=1, target=2):
+        # Ensure we have three qubits
+        if (self.noqubits < 3):
+            print("This operation can't be done with less than 3 qubits!")
+            sys.exit(1)
+        else:
+            # Toffoli matrix
+            self.toffoli = np.array([(1,0,0,0,0,0,0,0), 
+                                (0,1,0,0,0,0,0,0), 
+                                (0,0,1,0,0,0,0,0), 
+                                (0,0,0,1,0,0,0,0), 
+                                (0,0,0,0,1,0,0,0), 
+                                (0,0,0,0,0,1,0,0), 
+                                (0,0,0,0,0,0,0,1), 
+                                (0,0,0,0,0,0,1,0)], dtype=np.float)
+            self.qubit = np.dot(self.toffoli, self.qubit)
+            # # This produces Toffoli from CNOTs, also not working god-knows-why
+            # self.h(target)
+            # self.cx(target, control1)
+            # #self.cx(control1, target)
+            # self.tdg(target)
+            # self.cx(target, control2)
+            # #self.cx(control2, target)
+            # self.t(target)
+            # self.cx(target, control1)
+            # #self.cx(control1, target)
+            # self.tdg(target)
+            # self.cx(target, control2)
+            # #self.cx(control2, target)
+            # self.t(target)
+            # self.cx(control1, control2)
+            # #self.cx(control2, control1)
+            # self.h(target)
+            # self.t(control2)
+            # self.tdg(control1)
+            # self.cx(control1, control2)
+            # self.cx(control2, control1)
     
+    # Increment function
+    # Transport the value of the STATE to STATE+1
     def increment(self):
         copied = copy.deepcopy(self.qubit)
-        # Just to make things easier
+        # Handle exception of last state to the first
         self.qubit[0] = copied[self.nstates-1]
+        # Loop
         for i in range(1, self.nstates):
             self.qubit[i] = copied[i-1]
 
+    # Decrement function
+    # Transport the value of the STATE to STATE-1
     def decrement(self):
         copied = copy.deepcopy(self.qubit)
-        # Just to make things easier
+        # Handle exception of last state to the first
         self.qubit[self.nstates-1] = copied[0]
-        for i in range(0, self.nstates - 2):
+        # Loop
+        for i in range(0, self.nstates - 1 ):
             self.qubit[i] = copied[i+1]
 
 ##   _____ _____ _   _  _____ _      ______       _____       _______ ______ 
@@ -132,10 +159,14 @@ class QuantumCircuit():
 ##                (HAD, ROTX/NOT, ROTY, ROTZ, PHASE, T, TDG)
 
 
-# Define
-    def apply(self, qbit, matrix):
+# This function is the general function to apply the unitary gates
+# This avoids repeated code. Also, I noticed that this reusage is
+# a common practice among quantum simulator codes.
 
+    def apply(self, qbit, matrix):
         self.applymatrix = matrix
+        self.identitymatrix = np.array([(1, 0), (0, 1)], dtype=np.float)
+        # start = time.time()
         if(qbit == 0):
             self.allcircuit = self.applymatrix
             for i in range(self.noqubits - 1):
@@ -152,7 +183,8 @@ class QuantumCircuit():
                 self.allcircuit = np.kron(self.identitymatrix, self.allcircuit)
         # Final tensor
         self.qubit = self.allcircuit.dot(self.qubit)
-       
+        # end = time.time()
+        print(end - start)
 
 # Defines the Hadamard function
     def h(self, qbit):
@@ -174,22 +206,19 @@ class QuantumCircuit():
         self.rotzmatrix = np.array([(1, 0), (0, - 1)], dtype=np.float)
         self.apply(qbit, self.rotzmatrix)
 
-# Defines the PHASE function
+# Defines the PHASE function (depends on the angle)
     def p(self, qbit, angle):
-        # Define PHASE matrix
         rad = math.radians(angle)
-        self.pmatrix = np.array([(1, 0), (0, 0 + math.e**(1.j*rad))], dtype=np.complex)
+        self.pmatrix = np.array([(1, 0), (0, 0 + math.e**(rad*1.j))], dtype=np.complex)
         self.apply(qbit, self.pmatrix)
 
 # Defines the T-GATE function
     def t(self, qbit):
-        # Define T-GATE matrix
         self.tmatrix = np.array([(1, 0), (0, 0 + math.e**(1.j*(math.pi)/4))], dtype=np.complex)
         self.apply(qbit, self.tmatrix)
 
 # Defines the TDG-GATE function
     def tdg(self, qbit):
-        # Define T-GATE matrix
         self.tdgmatrix = np.array([(1, 0), (0, 0 + math.e**(-1.j*(math.pi)/4))], dtype=np.complex)
         self.apply(qbit, self.tdgmatrix)
 
@@ -200,6 +229,7 @@ class QuantumCircuit():
  ##  _| |_ / / | |__| |
  ## |_____/_/   \____/
  ##
+    # Pretty much copied from Stefano's class, except for the save part
     # Read the system (although it uses the random module, running one time might not be random enough)
     def read(self):
         self.possibleoutcome = np.arange(self.nstates)
@@ -225,19 +255,22 @@ class QuantumCircuit():
         plt.xticks(self.possibleoutcome, rotation='65')
         if (save == 0):
             plt.show()
+        # This will allow for saving multiple times
         else:
-            plt.savefig("reads.png")
+            fname = "reads" + str(self.figimage) + ".png"
+            plt.savefig(fname)
 
-    
-    def write(self, initstate):
-        self.initstate = initstate
-        print("Written state = ", self.initstate)
+    # This has been useless for me
+    # def write(self, initstate):
+    #     self.initstate = initstate
+    #     print("Written state = ", self.initstate)
 
-        if(self.initstate > self.nstates-1):
-            print("Initial state can't be represented in the system")
-            sys.exit(1)
-        self.qubit[self.initstate] = 1
+    #     if(self.initstate > self.nstates-1):
+    #         print("Initial state can't be represented in the system")
+    #         sys.exit(1)
+    #     self.qubit[self.initstate] = 1
 
+    # Write state in binary
     def writebin(self, binarystring):
         self.initstate = int(binarystring, 2)
         if (self.initstate > self.nstates-1):
@@ -245,6 +278,7 @@ class QuantumCircuit():
             sys.exit(1)
         self.qubit[self.initstate] = 1.0
 
+    # Visualization in Bloch circles (not spheres!)
     def viz2(self, save=0):
         self.probqubit = np.absolute(self.qubit)
         self.phasequbit = np.angle(self.qubit)
@@ -267,8 +301,13 @@ class QuantumCircuit():
             axs[col].axis('off')
         if (save == 0):
             plt.show()
+        # This will allow for saving multiple times
         else:
-            plt.savefig("bloch.png")
+            fname = "bloch" + str(self.figimage) + ".png"
+            plt.savefig(fname)
 
+    # Helper function to show state vector and allows copy to variable
     def show(self):
         print(self.qubit)
+        return self.qubit
+

@@ -54,7 +54,7 @@ def execute(cmd, qc, val1=0, val2=0):
         qc.cx(val1, val2)
     # READ STATES
     if(cmd == 'READ'):
-        qc.readmultiple(1)
+        qc.readmultiple(1000, 1)
     # BLOCH SPHERES
     if(cmd == 'BLOCH'):
         qc.viz2(1)

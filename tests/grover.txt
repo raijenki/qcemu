@@ -1,0 +1,24 @@
+# This file implements Grover's Algorithm
+INIT 3
+WRITE 101
+H 0
+H 1
+H 2
+H 2
+CCX 0 1 2
+H 2
+H 0
+H 1
+H 2
+NOT 0
+NOT 1
+NOT 2
+H 2
+CCX 0 1 2
+H 2
+NOT 0 
+NOT 1
+NOT 2
+H 0
+H 1
+H 2
