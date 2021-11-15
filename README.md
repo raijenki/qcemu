@@ -11,5 +11,8 @@ This is a Quantum Computer simulator written in Python 3 for the course `FDD3280
 ## How do I use QCEmu/QCLang?
 Please refer to `report.pdf` file for both QCEmu usage and the QCLang grammar.
 
+## Are there bugs?
+There are bugs in the CNOT for over 3 qubits and the CCNOT (which I spent few days and couldn't figure why it was not working).
+
 ## Should I actually use this?
-No. There are bugs in the CNOT for over 3 qubits and the CCNOT (which I spent few days and couldn't figure why it was not working).
+No.
